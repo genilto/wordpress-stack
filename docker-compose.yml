@@ -1,0 +1,67 @@
+# Use root/mysql as user/password credentials
+version: '3.9'
+
+services:
+  proxy:
+    image: jwilder/nginx-proxy:0.9-alpine
+    container_name: proxy
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DEFAULT_HOST: ${NGINX_DEFAULT_HOST}
+    volumes:
+      - ./custom_nginx.conf:/etc/nginx/conf.d/custom_nginx.conf
+      - ./data/certs:/etc/nginx/certs
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+    networks:
+      - frontend
+
+  mysql:
+    image: mysql:5.7
+    container_name: mysql
+    restart: always
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${WORDPRESS_DB_NAME}
+      MYSQL_USER: ${WORDPRESS_DB_USER}
+      MYSQL_PASSWORD: ${WORDPRESS_DB_PASSWORD}
+    volumes:
+      - ./custom_mysql.cnf:/etc/mysql/conf.d/custom_mysql.cnf
+      - mysql-volume:/var/lib/mysql
+    networks:
+      - backend
+
+  wordpress:
+    image: wordpress
+    container_name: wordpress
+    restart: always
+    ports:
+      - "81:80"
+    depends_on:
+      - proxy
+      - mysql
+    environment:
+      VIRTUAL_HOST: ${WORDPRESS_DOMAINS}
+      WORDPRESS_DB_HOST: mysql
+      WORDPRESS_DB_NAME: ${WORDPRESS_DB_NAME}
+      WORDPRESS_DB_USER: ${WORDPRESS_DB_USER}
+      WORDPRESS_DB_PASSWORD: ${WORDPRESS_DB_PASSWORD}
+      WORDPRESS_TABLE_PREFIX: ${WORDPRESS_TABLE_PREFIX}
+      #WORDPRESS_DEBUG: 1
+    volumes:
+      - ./custom_php.ini:/usr/local/etc/php/conf.d/custom_php.ini
+      - ./data/${WORDPRESS_WP_CONTENT_DIR}:/var/www/html/wp-content
+    networks:
+      - backend
+      - frontend
+
+volumes:
+  mysql-volume:
+
+networks:
+  frontend:
+  backend:
