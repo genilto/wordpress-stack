@@ -54,7 +54,7 @@ services:
       #WORDPRESS_DEBUG: 1
     volumes:
       - ./custom_php.ini:/usr/local/etc/php/conf.d/custom_php.ini
-      - ./data/${WORDPRESS_WP_CONTENT_DIR}:/var/www/html/wp-content
+      - ./data/${WORDPRESS_WP_CONTENT_DIR}:/var/www/html
     networks:
       - backend
       - frontend
