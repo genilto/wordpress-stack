@@ -1,0 +1,75 @@
+version: '3.9'
+
+services:
+  # proxy:
+  #   image: 'jc21/nginx-proxy-manager:latest'
+  #   restart: unless-stopped
+  #   ports:
+  #     - '80:80'
+  #     - '2087:81'
+  #     - '443:443'
+  #   volumes:
+  #     - ./nginx/data:/data
+  #     - ./nginx/letsencrypt:/etc/letsencrypt
+  #   networks:
+  #     - frontend
+
+  proxy:
+    # The official v2 Traefik docker image
+    image: traefik:v2.6
+    # Enables the web UI and tells Traefik to listen to docker
+    command: --api.insecure=true --providers.docker
+    ports:
+      # The HTTP port
+      - "80:80"
+      # The Web UI (enabled by --api.insecure=true)
+      - "8080:8080"
+    volumes:
+      # So that Traefik can listen to the Docker events
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - frontend
+
+  mysql:
+    image: mysql:5.7
+    container_name: mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${WORDPRESS_DB_NAME}
+      MYSQL_USER: ${WORDPRESS_DB_USER}
+      MYSQL_PASSWORD: ${WORDPRESS_DB_PASSWORD}
+    volumes:
+      - ./custom_mysql.cnf:/etc/mysql/conf.d/custom_mysql.cnf
+      - mysql-volume:/var/lib/mysql
+    networks:
+      - backend
+
+  wordpress:
+    image: wordpress
+    container_name: wordpress
+    restart: always
+    depends_on:
+      - mysql
+    environment:
+      WORDPRESS_DB_HOST: mysql
+      WORDPRESS_DB_NAME: ${WORDPRESS_DB_NAME}
+      WORDPRESS_DB_USER: ${WORDPRESS_DB_USER}
+      WORDPRESS_DB_PASSWORD: ${WORDPRESS_DB_PASSWORD}
+      WORDPRESS_TABLE_PREFIX: ${WORDPRESS_TABLE_PREFIX}
+      #WORDPRESS_DEBUG: 1
+    labels:
+      - "traefik.http.routers.wordpress.rule=Host(`localhost`)"
+    volumes:
+      - ./custom_php.ini:/usr/local/etc/php/conf.d/custom_php.ini
+      - ./data/wordpress/${WORDPRESS_WP_CONTENT_DIR}:/var/www/html
+    networks:
+      - backend
+      - frontend
+
+volumes:
+  mysql-volume:
+
+networks:
+  frontend:
+  backend:
