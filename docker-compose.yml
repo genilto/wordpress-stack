@@ -1,49 +1,48 @@
 version: '3.9'
 
 services:
-  # proxy:
-  #   image: 'jc21/nginx-proxy-manager:latest'
-  #   restart: unless-stopped
-  #   ports:
-  #     - '80:80'
-  #     - '2087:81'
-  #     - '443:443'
-  #   volumes:
-  #     - ./nginx/data:/data
-  #     - ./nginx/letsencrypt:/etc/letsencrypt
-  #   networks:
-  #     - frontend
-
   proxy:
-    # The official v2 Traefik docker image
-    image: traefik:v2.6
-    # Enables the web UI and tells Traefik to listen to docker
-    command: --api.insecure=true --providers.docker
+    image: "traefik"
+    container_name: proxy
+    restart: always
+    command:
+      - "--api=true"
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.web.http.redirections.entryPoint.to=websecure"
+      - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
+      - "--entrypoints.websecure.address=:443"
+      - "--certificatesresolvers.mytlschallenge.acme.tlschallenge=true"
+      - "--certificatesresolvers.mytlschallenge.acme.email=${SSL_EMAIL}"
+      - "--certificatesresolvers.mytlschallenge.acme.storage=/letsencrypt/acme.json"
+#      - "--api.debug=true"
+#      - "--log.level=DEBUG"
     ports:
-      # The HTTP port
       - "80:80"
-      # The Web UI (enabled by --api.insecure=true)
-      - "8080:8080"
+      - "443:443"
+#      - "8080:8080"
+    depends_on:
+      - wordpress
     volumes:
-      # So that Traefik can listen to the Docker events
-      - /var/run/docker.sock:/var/run/docker.sock
-    networks:
-      - frontend
+      - ./data/letsencrypt:/letsencrypt
+      - /var/run/docker.sock:/var/run/docker.sock:ro
 
   mysql:
-    image: mysql:5.7
+    image: mariadb:10.7.3
     container_name: mysql
     restart: always
+    ports:
+      - "3306:3306"
     environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
-      MYSQL_DATABASE: ${WORDPRESS_DB_NAME}
-      MYSQL_USER: ${WORDPRESS_DB_USER}
-      MYSQL_PASSWORD: ${WORDPRESS_DB_PASSWORD}
+      MARIADB_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MARIADB_DATABASE: ${WORDPRESS_DB_NAME}
+      MARIADB_USER: ${WORDPRESS_DB_USER}
+      MARIADB_PASSWORD: ${WORDPRESS_DB_PASSWORD}
     volumes:
       - ./custom_mysql.cnf:/etc/mysql/conf.d/custom_mysql.cnf
       - mysql-volume:/var/lib/mysql
-    networks:
-      - backend
 
   wordpress:
     image: wordpress
@@ -59,17 +58,22 @@ services:
       WORDPRESS_TABLE_PREFIX: ${WORDPRESS_TABLE_PREFIX}
       #WORDPRESS_DEBUG: 1
     labels:
-      - "traefik.http.routers.wordpress.rule=Host(`localhost`)"
+      - traefik.enable=true
+      - traefik.http.routers.wordpress.rule=Host(`${WORDPRESS_URL}`)
+      - traefik.http.routers.wordpress.tls=true
+      - traefik.http.routers.wordpress.entrypoints=web,websecure
+      - traefik.http.routers.wordpress.tls.certresolver=mytlschallenge
+      - traefik.http.middlewares.wordpress.headers.SSLRedirect=true
+      - traefik.http.middlewares.wordpress.headers.STSSeconds=315360000
+      - traefik.http.middlewares.wordpress.headers.browserXSSFilter=true
+      - traefik.http.middlewares.wordpress.headers.contentTypeNosniff=true
+      - traefik.http.middlewares.wordpress.headers.forceSTSHeader=true
+      - traefik.http.middlewares.wordpress.headers.SSLHost=${DEFAULT_HOST_NAME}
+      - traefik.http.middlewares.wordpress.headers.STSIncludeSubdomains=true
+      - traefik.http.middlewares.wordpress.headers.STSPreload=true
     volumes:
       - ./custom_php.ini:/usr/local/etc/php/conf.d/custom_php.ini
       - ./data/wordpress/${WORDPRESS_WP_CONTENT_DIR}:/var/www/html
-    networks:
-      - backend
-      - frontend
 
 volumes:
   mysql-volume:
-
-networks:
-  frontend:
-  backend:
