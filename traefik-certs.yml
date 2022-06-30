@@ -1,0 +1,6 @@
+# Dynamic configuration
+# in configuration/certificates.yaml
+tls:
+  certificates:
+    - certFile: /etc/certs/cert.crt
+      keyFile: /etc/certs/cert.key

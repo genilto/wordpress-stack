@@ -14,11 +14,15 @@ services:
       - "--entrypoints.web.http.redirections.entryPoint.to=websecure"
       - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
       - "--entrypoints.websecure.address=:443"
-      - "--certificatesresolvers.mytlschallenge.acme.tlschallenge=true"
-      - "--certificatesresolvers.mytlschallenge.acme.email=${SSL_EMAIL}"
-      - "--certificatesresolvers.mytlschallenge.acme.storage=/letsencrypt/acme.json"
-#      - "--api.debug=true"
-#      - "--log.level=DEBUG"
+      # CUSTOM CERTS
+      - "--providers.file.directory=/etc/traefik/dynamic"
+      # Lets Encrypt
+      # - "--certificatesresolvers.mytlschallenge.acme.tlschallenge=true"
+      # - "--certificatesresolvers.mytlschallenge.acme.email=${SSL_EMAIL}"
+      # - "--certificatesresolvers.mytlschallenge.acme.storage=/letsencrypt/acme.json"
+    #  DEBUG
+    #  - "--api.debug=true"
+    #  - "--log.level=DEBUG"
     ports:
       - "80:80"
       - "443:443"
@@ -26,7 +30,11 @@ services:
     depends_on:
       - wordpress
     volumes:
-      - ./data/letsencrypt:/letsencrypt
+      # CUSTOM CERTS
+      - ./traefik-certs.yml:/etc/traefik/dynamic/traefik-certs.yml
+      - ./data/certs:/etc/certs
+      # Lets Encrypt
+      #- ./data/letsencrypt:/letsencrypt
       - /var/run/docker.sock:/var/run/docker.sock:ro
 
   mysql:
@@ -68,9 +76,10 @@ services:
       - traefik.http.middlewares.wordpress.headers.browserXSSFilter=true
       - traefik.http.middlewares.wordpress.headers.contentTypeNosniff=true
       - traefik.http.middlewares.wordpress.headers.forceSTSHeader=true
-      - traefik.http.middlewares.wordpress.headers.SSLHost=${DEFAULT_HOST_NAME}
       - traefik.http.middlewares.wordpress.headers.STSIncludeSubdomains=true
       - traefik.http.middlewares.wordpress.headers.STSPreload=true
+      # Lets Encrypt
+      # - traefik.http.middlewares.wordpress.headers.SSLHost=${DEFAULT_HOST_NAME}
     volumes:
       - ./custom_php.ini:/usr/local/etc/php/conf.d/custom_php.ini
       - ./data/wordpress/${WORDPRESS_WP_CONTENT_DIR}:/var/www/html
