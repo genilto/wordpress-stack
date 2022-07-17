@@ -82,7 +82,7 @@ services:
       # - traefik.http.routers.wordpress.tls.certresolver=mytlschallenge
     volumes:
       - ./custom_php.ini:/usr/local/etc/php/conf.d/custom_php.ini
-      - ./data/wordpress/${WORDPRESS_WP_CONTENT_DIR}:/var/www/html
+      - ./data/${WORDPRESS_CONTENT_DIR}:/var/www/html
 
 volumes:
   mysql-volume:
