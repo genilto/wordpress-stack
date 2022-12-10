@@ -38,22 +38,22 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock:ro
 
   mysql:
-    image: mariadb:10.7.3
+    image: mysql:8.0.30
     container_name: mysql
     restart: always
     ports:
       - "3306:3306"
     environment:
-      MARIADB_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
-      MARIADB_DATABASE: ${WORDPRESS_DB_NAME}
-      MARIADB_USER: ${WORDPRESS_DB_USER}
-      MARIADB_PASSWORD: ${WORDPRESS_DB_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${WORDPRESS_DB_NAME}
+      MYSQL_USER: ${WORDPRESS_DB_USER}
+      MYSQL_PASSWORD: ${WORDPRESS_DB_PASSWORD}
     volumes:
       - ./custom_mysql.cnf:/etc/mysql/conf.d/custom_mysql.cnf
       - mysql-volume:/var/lib/mysql
 
   wordpress:
-    image: wordpress
+    image: wordpress:php8.1
     container_name: wordpress
     restart: always
     depends_on:
