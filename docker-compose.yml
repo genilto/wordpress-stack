@@ -67,7 +67,7 @@ services:
       WORDPRESS_DEBUG: ${WORDPRESS_DEBUG}
     labels:
       - traefik.enable=true
-      - traefik.http.routers.wordpress.rule=Host(`${WORDPRESS_URL}`)
+      - traefik.http.routers.wordpress.rule=Host(${WORDPRESS_URLS})
       - traefik.http.routers.wordpress.tls=true
       - traefik.http.routers.wordpress.entrypoints=web,websecure
       - traefik.http.middlewares.wordpress.headers.SSLRedirect=true
